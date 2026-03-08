@@ -15,6 +15,7 @@ A Streamlit web app that analyzes food photos and provides calorie counts, macro
 - [Streamlit](https://streamlit.io) — web app framework
 - [Google Gemini AI](https://ai.google.dev) — image analysis
 - [Pillow](https://python-pillow.org) — image handling
+- [google-genai](https://pypi.org/project/google-genai/) — Google Gemini SDK
 - [python-dotenv](https://pypi.org/project/python-dotenv/) — environment variable management
 
 ## Setup
@@ -22,7 +23,7 @@ A Streamlit web app that analyzes food photos and provides calorie counts, macro
 ### 1. Clone the repository
 
 ```bash
-git clone https://github.com/YOUR_USERNAME/CalCounter.git
+git clone https://github.com/ashanTIP2025/CalCounter.git
 cd CalCounter
 ```
 
