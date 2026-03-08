@@ -3,6 +3,7 @@ import streamlit as st  # for creating the web app
 from dotenv import load_dotenv  # for loading API key from .env file
 import os
 import json
+import io
 import google.generativeai as genai  # Google's AI model
 from PIL import Image  # for handling images
 
@@ -12,30 +13,36 @@ load_dotenv()
 # Set up the Google Gemini AI with your API key
 genai.configure(api_key=os.getenv("GOOGLE_API_KEY"))
 
+# Cache model initialization so it's created once per session
+@st.cache_resource
+def get_model():
+    return genai.GenerativeModel('gemini-3.1-flash-image-preview')
+
 # Function to get AI response about the food image
-def get_gemini_response(image, prompt):
+# Cache results so the same image isn't re-analyzed on every rerun
+@st.cache_data(show_spinner=False)
+def get_gemini_response(image_bytes, prompt):
     """Send image to Google's AI and get calorie information"""
     try:
-        model = genai.GenerativeModel('gemini-3.1-flash-image-preview')
-        response = model.generate_content([image[0], prompt])
+        model = get_model()
+        image_part = {"mime_type": "image/jpeg", "data": image_bytes}
+        response = model.generate_content([image_part, prompt])
         return response.text
     except Exception as e:
         return f"Error: {str(e)}"
 
-# Function to prepare the uploaded image for AI processing
+# Function to prepare and compress the uploaded image for AI processing
 def prepare_image(uploaded_file):
-    """Convert uploaded image to format required by Google's AI"""
-    if uploaded_file is not None:
-        bytes_data = uploaded_file.getvalue()
-        image_parts = [
-            {
-                "mime_type": uploaded_file.type,
-                "data": bytes_data
-            }
-        ]
-        return image_parts
-    else:
+    """Resize and compress image to reduce upload size and speed up API calls"""
+    if uploaded_file is None:
         return None
+    img = Image.open(uploaded_file)
+    # Resize to max 1024px on longest side
+    img.thumbnail((1024, 1024), Image.LANCZOS)
+    # Re-encode as JPEG at 85% quality
+    buffer = io.BytesIO()
+    img.convert("RGB").save(buffer, format="JPEG", quality=85)
+    return buffer.getvalue()
 
 # Main web app
 def main():
@@ -74,9 +81,9 @@ def main():
                 """
 
                 # Get AI response
-                image_data = prepare_image(uploaded_file)
-                if image_data is not None:
-                    response = get_gemini_response(image_data, prompt)
+                image_bytes = prepare_image(uploaded_file)
+                if image_bytes is not None:
+                    response = get_gemini_response(image_bytes, prompt)
 
                     # Try to parse as JSON for rich display
                     try:
